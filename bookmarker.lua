@@ -133,14 +133,28 @@ function platform_independent(filepath)
   return filepath -- // see "shared-bookmarks-different-os.md" to see utility of this function
 end
 
+function getCurrentMediaPath()
+  local realpath_res = mp.command_native({
+    name = "subprocess",
+    capture_stdout = true,
+    args = {"realpath", mp.get_property("path")}
+  })
+  return realpath_res.stdout:gsub("\n","")
+end
+
 --// default file to save/load bookmarks to/from
 function getConfigFile()
-  local path = ''
+  local config_path = ''
+
   if is_windows() then
-    path = os.getenv("APPDATA"):gsub("\\", "/") .. "/mpv/bookmarks.json"
+    config_path = os.getenv("APPDATA"):gsub("\\", "/") .. "/mpv"
   else
-    path = os.getenv("HOME") .. "/.config/mpv/bookmarks.json"
+    config_path = os.getenv("HOME") .. "/.config/mpv"
   end
+
+  local media_path = getCurrentMediaPath()
+  local path = config_path .. "/bookmarks/bookmarks" .. media_path:gsub("\\","_"):gsub("/","_") .. ".json"
+
   msg.debug("[persistence]", "config file is set to '" .. path .. "'.")
   return path
 end
@@ -199,7 +213,7 @@ function currentPositionAsBookmark()
   else
     bookmark["pos"] = mp.get_property_number("time-pos")
   end
-  bookmark["filepath"] = mp.get_property("path")
+  bookmark["filepath"] = getCurrentMediaPath()
   bookmark["filename"] = mp.get_property("filename")
   bookmark["title"] = mp.get_property("media-title")
   msg.debug("[interface]", "bookmark to be saved: { " .. utils.format_json(bookmark) .. " }")
